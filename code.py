@@ -1,12 +1,12 @@
-# INSTALL
+"""Local runner for RobustBench evaluation on CIFAR-10 using AutoAttack."""
 
-!pip install -q git+https://github.com/fra31/auto-attack
-!pip install -q git+https://github.com/RobustBench/robustbench.git
-!pip install -q pandas matplotlib seaborn scipy
+# Requirements (run once):
+# python -m pip install torch torchvision
+# python -m pip install git+https://github.com/RobustBench/robustbench.git
+# python -m pip install pandas matplotlib seaborn scipy
 
-
-# IMPORT
-
+import time
+from datetime import datetime
 import torch
 import pandas as pd
 import numpy as np
@@ -19,187 +19,227 @@ from autoattack import AutoAttack
 from scipy.stats import spearmanr
 
 
-# DEVICE (if it's available it will use GPU (CUDA), otherwise CPU)
-
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-print("Device:", DEVICE)
-
-
-# CONFIG
-
-MODELS = [
-    'Carmon2019Unlabeled',
-    'Rice2020Overfitting',
-    'Engstrom2019Robustness',
-    'Rebuffi2021Fixing_28_10_cutmix_ddpm',
-    'Gowal2021Improving_28_10_ddpm_100m'
-]
-
-EPSILONS_255 = [4, 8, 12]
-EPSILONS = [e / 255 for e in EPSILONS_255]
-
-N_EXAMPLES = 20   # test, poi devo aumentare almeno a 100 (consegna 100-200)
-BATCH_SIZE = 16
-
-
-# DATASET
-
-print("Loading CIFAR-10...")
-
-x_test, y_test = load_cifar10(n_examples=N_EXAMPLES)
-
-x_test = x_test.to(DEVICE)
-y_test = y_test.to(DEVICE)
-
-print("Shape:", x_test.shape)
-
-
-# EVALUATION
-
-def evaluate(model_name, eps):
-
+def evaluate(model_name, eps, x_test, y_test, device, batch_size):
     print(f"\nModel: {model_name} | eps: {eps:.4f}")
 
     model = load_model(
         model_name=model_name,
         dataset='cifar10',
         threat_model='Linf'
-    ).to(DEVICE)
+    ).to(device)
 
     model.eval()
 
-    attack = AutoAttack(
+    base_attack = AutoAttack(
         model,
         norm='Linf',
         eps=eps,
         version='standard',
-        device=DEVICE
+        device=device
     )
+    attack_names = list(base_attack.attacks_to_run)
 
-    x_adv = attack.run_standard_evaluation(
-        x_test,
-        y_test,
-        bs=BATCH_SIZE
-    )
+    results = []
 
-    with torch.no_grad():
-        preds = model(x_adv).argmax(1)
-        acc = (preds == y_test).float().mean().item()
+    for attack_name in attack_names:
+        print(f"Attack: {attack_name}")
 
-    print("Robust acc:", acc)
+        attack = AutoAttack(
+            model,
+            norm='Linf',
+            eps=eps,
+            version='standard',
+            device=device
+        )
+        attack.attacks_to_run = [attack_name]
 
-    return acc
+        x_adv = attack.run_standard_evaluation(
+            x_test,
+            y_test,
+            bs=batch_size
+        )
 
+        with torch.no_grad():
+            preds = model(x_adv).argmax(1)
+            acc = (preds == y_test).float().mean().item()
 
-# RUN 
-
-results = []
-
-for m in MODELS:
-    for eps255, eps in zip(EPSILONS_255, EPSILONS):
-
-        acc = evaluate(m, eps)
+        print(f"Robust acc ({attack_name}):", acc)
 
         results.append({
-            "model": m,
-            "epsilon": eps,
-            "eps_255": eps255,
+            "attack": attack_name,
             "robust_acc": acc
         })
 
-
-df = pd.DataFrame(results)
-df.to_csv("results.csv", index=False)
-
-print("\nSaved results.csv")
+    return results
 
 
-# RANKING
-
-rank_df = []
-
-for eps in df["epsilon"].unique():
-
-    sub = df[df["epsilon"] == eps].copy()
-    sub = sub.sort_values("robust_acc", ascending=False)
-    sub["rank"] = range(1, len(sub) + 1)
-
-    rank_df.append(sub)
-
-rank_df = pd.concat(rank_df)
+def save_progress(results, path="results.csv"):
+    pd.DataFrame(results).to_csv(path, index=False)
+    print(f"Saved {path}")
 
 
-print("\nRANKING:")
-print(rank_df[["eps_255","model","robust_acc","rank"]])
+def main():
+    # DEVICE (if it's available it will use GPU (CUDA), otherwise CPU)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print("Device:", device)
+    
+    # CONFIG
+    models = [
+        'Carmon2019Unlabeled',
+        'Rice2020Overfitting',
+        'Engstrom2019Robustness',
+        'Rebuffi2021Fixing_28_10_cutmix_ddpm',
+        'Gowal2021Improving_28_10_ddpm_100m'
+    ]
 
+    epsilons_255 = [4, 8, 12]
+    epsilons = [e / 255 for e in epsilons_255]
 
-# SPEARMAN CORRELATION WITH RESPECT TO THE BASELINE RANKING AT ε = 8/255
-# (spearman rank correlation misura la somiglianza tra due classifiche/ranking: 1=ranking identici//0=nessuna relazione// 
-# //-1=ranking completamente invertiti) 
+    n_examples = 100   # test, poi devo aumentare almeno a 100 (consegna 100-200)
+    batch_size = 100
+    cooldown_seconds = 30  # cooldown between runs to avoid overheating the GPU
 
-baseline = rank_df[rank_df["eps_255"] == 8].sort_values("model")
-base_ranks = baseline["rank"].values
+    # DATASET
+    print("Loading CIFAR-10...")
 
-corrs = []
+    x_test, y_test = load_cifar10(n_examples=n_examples)
 
-for e in sorted(rank_df["eps_255"].unique()):
+    x_test = x_test.to(device)
+    y_test = y_test.to(device)
 
-    cur = rank_df[rank_df["eps_255"] == e].sort_values("model")
-    r, _ = spearmanr(base_ranks, cur["rank"].values)
+    print("Shape:", x_test.shape)
 
-    corrs.append((e, r))
+    # RUN
+    results = []
 
-corr_df = pd.DataFrame(corrs, columns=["eps_255", "spearman"])
-print("\nSpearman correlation:")
-print(corr_df)
+    for mi, m in enumerate(models):
+        for i, (eps255, eps) in enumerate(zip(epsilons_255, epsilons)):
+            attack_results = evaluate(m, eps, x_test, y_test, device, batch_size)
 
+            for attack_result in attack_results:
+                results.append({
+                    "model": m,
+                    "epsilon": eps,
+                    "eps_255": eps255,
+                    "attack": attack_result["attack"],
+                    "robust_acc": attack_result["robust_acc"],
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                })
 
-# PLOT ACCURACY
+                save_progress(results)
 
-plt.figure(figsize=(10,6))
+            if i < len(epsilons) - 1:
+                print(f"Cooling down for {cooldown_seconds}s...")
+                time.sleep(cooldown_seconds)
 
-sns.lineplot(
-    data=df,
-    x="eps_255",
-    y="robust_acc",
-    hue="model",
-    marker="o"
-)
+        if mi < len(models) - 1:
+            print(f"Cooling down between models for {cooldown_seconds}s...")
+            time.sleep(cooldown_seconds)
 
-plt.title("Robust Accuracy vs Epsilon")
-plt.grid()
-plt.show()
+    df = pd.DataFrame(results)
+    df.to_csv("results.csv", index=False)
 
+    print("\nSaved results.csv")
 
-# PLOT RANK
+    # RANKING
+    rank_df = []
 
-plt.figure(figsize=(10,6))
+    for (eps, attack_name), sub in df.groupby(["epsilon", "attack"]):
+        sub = sub.copy()
+        sub = sub.sort_values("robust_acc", ascending=False)
+        sub["rank"] = range(1, len(sub) + 1)
 
-sns.lineplot(
-    data=rank_df,
-    x="eps_255",
-    y="rank",
-    hue="model",
-    marker="o"
-)
+        rank_df.append(sub)
 
-plt.gca().invert_yaxis()
-plt.title("Ranking vs Epsilon")
-plt.grid()
-plt.show()
+    rank_df = pd.concat(rank_df, ignore_index=True)
 
+    print("\nRANKING (per attack):")
+    print(rank_df[["eps_255", "attack", "model", "robust_acc", "rank"]])
 
-# SHIFT ANALYSIS (study of how rankings change when ε varies)
+    # SPEARMAN CORRELATION WITH RESPECT TO THE BASELINE RANKING AT ε = 8/255
+    # (spearman rank correlation misura la somiglianza tra due classifiche/ranking: 1=ranking identici//0=nessuna relazione//
+    # //-1=ranking completamente invertiti)
+    corrs = []
 
-print("\nRANK SHIFTS:\n")
+    for attack_name in sorted(rank_df["attack"].unique()):
+        baseline = rank_df[
+            (rank_df["attack"] == attack_name) & (rank_df["eps_255"] == 8)
+        ].sort_values("model")
+        if baseline.empty:
+            continue
+        base_ranks = baseline["rank"].values
 
-for m in MODELS:
+        for e in sorted(rank_df["eps_255"].unique()):
+            cur = rank_df[
+                (rank_df["attack"] == attack_name) & (rank_df["eps_255"] == e)
+            ].sort_values("model")
+            if len(cur) != len(base_ranks):
+                continue
+            r, _ = spearmanr(base_ranks, cur["rank"].values)
 
-    sub = rank_df[rank_df["model"] == m]
+            corrs.append((attack_name, e, r))
 
-    print(
-        m,
-        "best:", sub["rank"].min(),
-        "worst:", sub["rank"].max(),
-        "shift:", sub["rank"].max() - sub["rank"].min()
+    corr_df = pd.DataFrame(corrs, columns=["attack", "eps_255", "spearman"])
+    print("\nSpearman correlation:")
+    print(corr_df)
+
+    # PLOT ACCURACY
+    plt.figure(figsize=(10, 6))
+
+    sns.lineplot(
+        data=df,
+        x="eps_255",
+        y="robust_acc",
+        hue="model",
+        style="attack",
+        markers=True,
+        dashes=False,
+        estimator=None
     )
+
+    plt.title("Robust Accuracy vs Epsilon")
+    plt.grid()
+    plt.show()
+
+    # PLOT RANK
+    plt.figure(figsize=(10, 6))
+
+    sns.lineplot(
+        data=rank_df,
+        x="eps_255",
+        y="rank",
+        hue="model",
+        style="attack",
+        markers=True,
+        dashes=False,
+        estimator=None
+    )
+
+    plt.gca().invert_yaxis()
+    plt.title("Ranking vs Epsilon")
+    plt.grid()
+    plt.show()
+
+    # SHIFT ANALYSIS (study of how rankings change when ε varies)
+    print("\nRANK SHIFTS (per attack):\n")
+
+    for m in models:
+        for attack_name in sorted(rank_df["attack"].unique()):
+            sub = rank_df[
+                (rank_df["model"] == m) & (rank_df["attack"] == attack_name)
+            ]
+            if sub.empty:
+                continue
+
+            print(
+                m,
+                "|",
+                attack_name,
+                "best:", sub["rank"].min(),
+                "worst:", sub["rank"].max(),
+                "shift:", sub["rank"].max() - sub["rank"].min()
+            )
+
+
+if __name__ == "__main__":
+    main()
