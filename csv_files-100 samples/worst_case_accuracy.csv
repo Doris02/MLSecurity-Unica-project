@@ -1,0 +1,16 @@
+model,eps_255,robust_acc_worst
+Carmon2019Unlabeled,4,0.7599999904632568
+Carmon2019Unlabeled,8,0.5299999713897705
+Carmon2019Unlabeled,12,0.3700000047683716
+Engstrom2019Robustness,4,0.7099999785423279
+Engstrom2019Robustness,8,0.4599999785423279
+Engstrom2019Robustness,12,0.2699999809265136
+Gowal2021Improving_28_10_ddpm_100m,4,0.8100000023841858
+Gowal2021Improving_28_10_ddpm_100m,8,0.6399999856948853
+Gowal2021Improving_28_10_ddpm_100m,12,0.5
+Rebuffi2021Fixing_28_10_cutmix_ddpm,4,0.75
+Rebuffi2021Fixing_28_10_cutmix_ddpm,8,0.6299999952316284
+Rebuffi2021Fixing_28_10_cutmix_ddpm,12,0.4399999976158142
+Rice2020Overfitting,4,0.7400000095367432
+Rice2020Overfitting,8,0.5
+Rice2020Overfitting,12,0.3499999940395355
