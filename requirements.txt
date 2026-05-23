@@ -1,0 +1,10 @@
+# Use CUDA-enabled PyTorch wheels (adjust cu124 if your driver supports a different CUDA version)
+robustbench @ git+https://github.com/RobustBench/robustbench.git
+pandas
+matplotlib
+seaborn
+scipy
+
+# torch for MLP training with GPU support (CUDA 13.0)
+torch --index-url https://download.pytorch.org/whl/cu132
+torchvision --index-url https://download.pytorch.org/whl/cu132
