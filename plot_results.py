@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from config import Config
+
 
 def load_results(path):
     if not os.path.exists(path):
@@ -85,18 +87,18 @@ def plot_rank(rank_df, out_path):
 
 
 def main():
+    cfg = Config()
+    file = cfg.get_results_path("results_8_epsilons_150_samples.csv")
     parser = argparse.ArgumentParser(description="Rebuild plots from results.csv")
-    parser.add_argument("--results", default="results.csv", help="Path to results.csv")
-    parser.add_argument("--outdir", default="plots", help="Directory to save plots")
+    parser.add_argument("--results", default=file, help="Path to results.csv")
+    parser.add_argument("--outdir", default=cfg.get_plots_dir(), help="Directory to save plots")
     args = parser.parse_args()
 
     df = load_results(args.results)
     rank_df = build_rank_df(df)
 
-    os.makedirs(args.outdir, exist_ok=True)
-
-    acc_path = os.path.join(args.outdir, "robust_accuracy_vs_epsilon.png")
-    rank_path = os.path.join(args.outdir, "ranking_vs_epsilon.png")
+    acc_path = cfg.get_plots_path("robust_accuracy_vs_8_epsilon.png")
+    rank_path = cfg.get_plots_path("ranking_vs_8_epsilon.png")
 
     plot_accuracy(df, acc_path)
     plot_rank(rank_df, rank_path)
