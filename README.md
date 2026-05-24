@@ -27,13 +27,13 @@ The project assignment requires selecting five certified $\ell_\infty$ threat mo
 
 The repository is organized as follows:
 
-* **`code.py`**: The main evaluation script that runs the local pipeline on a subset of 150 CIFAR-10 test samples. It downloads the target models via RobustBench, deploys AutoAttack across the selected $\varepsilon$ steps, tracks point-wise rankings, computes Spearman rank correlation relative to the baseline, and prints a final rank shift analysis.
-* **`config.py`**: A clean configuration helper module designed to systematically manage output file paths for results and plots.
-* **`plot_results.py`**: A utility script to recreate overall comparative plots (Robust Accuracy vs. $\varepsilon$ and Ranking vs. $\varepsilon$) from the raw execution log data.
-* **`plot_worst_case_acc_and_ranking.py`**: An aggregation script focused on **Worst-Case Robust Accuracy** (extracting the absolute minimum resilience achieved by a model under the strongest sub-attack within the AutoAttack ensemble).
-* **`requirements.txt`**: List of Python dependencies required to replicate the computational environment (including proper PyTorch wheel indices and RobustBench wrappers).
-* **`csv_files/`**: Contains execution logs and outputs stored in tabular data format (`results.csv`, `worst_case_accuracy.csv`, `worst_case_ranking.csv`).
-* **`plots/`**: Storage for exported high-resolution visualization graphs used in the final report document.
+* **`code.py`**: the main evaluation script that runs the local pipeline on a subset of 150 CIFAR-10 test samples. It downloads the target models via RobustBench, deploys AutoAttack across the selected $\varepsilon$ steps, tracks point-wise rankings, computes Spearman rank correlation relative to the baseline and prints a final rank shift analysis.
+* **`config.py`**: a clean configuration helper module designed to systematically manage output file paths for results and plots.
+* **`plot_results.py`**: a utility script to recreate overall comparative plots (Robust Accuracy vs. $\varepsilon$ and Ranking vs. $\varepsilon$) from the raw execution log data.
+* **`plot_worst_case_acc_and_ranking.py`**: an aggregation script focused on **Worst-Case Robust Accuracy** (extracting the absolute minimum resilience achieved by a model under the strongest sub-attack within the AutoAttack ensemble).
+* **`requirements.txt`**: list of Python dependencies required to replicate the computational environment (including proper PyTorch wheel indices and RobustBench wrappers).
+* **`csv_files/`**: contains execution logs and outputs stored in tabular data format (`results.csv`, `worst_case_accuracy.csv`, `worst_case_ranking.csv`).
+* **`plots/`**: storage for exported high-resolution visualization graphs used in the final report document.
 
 
 
