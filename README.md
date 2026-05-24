@@ -12,7 +12,7 @@ The study evaluates the impact of varying the perturbation radius ε on the stab
 
 ## Project Description
 
-The project assignment requires selecting five certified $\ell_\infty$ threat model breakthroughs on CIFAR-10 from **RobustBench**. These models are re-evaluated using **AutoAttack** across a regularly spaced interval of $\varepsilon$ values (ranging from $2/255$ to $16/255$, explicitly including the standard baseline of $8/255$) using a sample subset of 100–200 images. The core objective is to critically assess the stability of model rankings and investigate significant rank shifts.
+The project assignment requires selecting five certified $\ell_\infty$ threat model breakthroughs on CIFAR-10 from **RobustBench**. These models are re-evaluated using **AutoAttack** across a regularly spaced interval of $\varepsilon$ values (ranging from $2/255$ to $16/255$, explicitly including the standard baseline of $8/255$) using a sample subset of 100 images at first and then of 150 images. The core objective is to critically assess the stability of model rankings and investigate significant rank shifts.
 
 ### Selected Models:
 1. `Carmon2019Unlabeled` (Carmon)
