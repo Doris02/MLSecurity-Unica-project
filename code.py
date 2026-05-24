@@ -92,11 +92,11 @@ def main():
         'Gowal2021Improving_28_10_ddpm_100m'
     ]
 
-    epsilons_255 = [4, 8, 12]
+    epsilons_255 = [2, 4, 6, 8, 10, 12, 14, 16]
     epsilons = [e / 255 for e in epsilons_255]
 
-    n_examples = 100   # test, poi devo aumentare almeno a 100 (consegna 100-200)
-    batch_size = 100
+    n_examples = 150   # test, poi devo aumentare almeno a 100 (consegna 100-200)
+    batch_size = 150
     cooldown_seconds = 30  # cooldown between runs to avoid overheating the GPU
 
     # DATASET
@@ -109,9 +109,11 @@ def main():
 
     print("Shape:", x_test.shape)
 
+    file_path = f"csv_files-100 samples/results_{len(epsilons)}_epsilons_{n_examples}_samples.csv"
+
     # RUN
     results = []
-
+    
     for mi, m in enumerate(models):
         for i, (eps255, eps) in enumerate(zip(epsilons_255, epsilons)):
             attack_results = evaluate(m, eps, x_test, y_test, device, batch_size)
@@ -126,20 +128,17 @@ def main():
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 })
 
-                save_progress(results)
+                save_progress(results, file_path)
+                time.sleep(cooldown_seconds) # cooldown after each attack to avoid overheating the GPU
 
-            if i < len(epsilons) - 1:
-                print(f"Cooling down for {cooldown_seconds}s...")
-                time.sleep(cooldown_seconds)
+            time.sleep(cooldown_seconds) # cooldown after each epsilon to avoid overheating the GPU
 
-        if mi < len(models) - 1:
-            print(f"Cooling down between models for {cooldown_seconds}s...")
-            time.sleep(cooldown_seconds)
+        time.sleep(cooldown_seconds) # cooldown after each model to avoid overheating the GPU
 
     df = pd.DataFrame(results)
-    df.to_csv("results.csv", index=False)
+    df.to_csv(file_path, index=False)
 
-    print("\nSaved results.csv")
+    print(f"\nSaved {file_path}")
 
     # RANKING
     rank_df = []
@@ -243,3 +242,26 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# RANK SHIFTS (per attack):
+
+# Carmon2019Unlabeled | apgd-ce best: 2 worst: 4 shift: 2
+# Carmon2019Unlabeled | apgd-t best: 1 worst: 4 shift: 3
+# Carmon2019Unlabeled | fab-t best: 1 worst: 3 shift: 2
+# Carmon2019Unlabeled | square best: 2 worst: 3 shift: 1
+# Rice2020Overfitting | apgd-ce best: 3 worst: 5 shift: 2
+# Rice2020Overfitting | apgd-t best: 3 worst: 5 shift: 2
+# Rice2020Overfitting | fab-t best: 4 worst: 5 shift: 1
+# Rice2020Overfitting | square best: 4 worst: 5 shift: 1
+# Engstrom2019Robustness | apgd-ce best: 4 worst: 5 shift: 1
+# Engstrom2019Robustness | apgd-t best: 4 worst: 5 shift: 1
+# Engstrom2019Robustness | fab-t best: 4 worst: 5 shift: 1
+# Engstrom2019Robustness | square best: 3 worst: 5 shift: 2
+# Rebuffi2021Fixing_28_10_cutmix_ddpm | apgd-ce best: 1 worst: 3 shift: 2
+# Rebuffi2021Fixing_28_10_cutmix_ddpm | apgd-t best: 1 worst: 3 shift: 2
+# Rebuffi2021Fixing_28_10_cutmix_ddpm | fab-t best: 1 worst: 3 shift: 2
+# Rebuffi2021Fixing_28_10_cutmix_ddpm | square best: 1 worst: 3 shift: 2
+# Gowal2021Improving_28_10_ddpm_100m | apgd-ce best: 1 worst: 3 shift: 2
+# Gowal2021Improving_28_10_ddpm_100m | apgd-t best: 1 worst: 3 shift: 2
+# Gowal2021Improving_28_10_ddpm_100m | fab-t best: 1 worst: 3 shift: 2
+# Gowal2021Improving_28_10_ddpm_100m | square best: 1 worst: 4 shift: 3
