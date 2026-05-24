@@ -49,14 +49,14 @@ pip install -r requirements.txt
 
 ## How to Run the Code
 
-1. **Execute the Evaluation Pipeline:**
+1. **Execute the evaluation pipeline:**
    ```bash
    python code.py
 
-2. **Generate Worst-Case Graphs (Highly Recommended for the Report):**
+2. **Generate worst-case graphs (highly recommended to better understand our analysis):**
    ```bash
    python plot_worst_case_acc_and_ranking.py
 
-3. **Generate Global Sub-Attack Plots:**
+3. **Generate global sub-attack plots:**
    ```bash
    python plot_results.py
