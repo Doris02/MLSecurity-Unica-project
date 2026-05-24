@@ -4,6 +4,7 @@
 Select five CIFAR-10 (ℓ∞) models from RobustBench and re-evaluate them using AutoAttack under different values of the radius epsilon (e.g., from 1/255 to 16/255, regularly spaced interval including the baseline 8/255), using a subset of 100-200 samples. Compare the resulting robust accuracies and model rankings across these settings. Evaluate the stability of model rankings across different epsilon values. Identify cases where these changes lead to significant rank shifts and discuss what this reveals about the reliability of RobustBench leaderboards. 
 
 
+## Repository Overview
 This repository contains the source code and material for the final project of the **Machine Learning Security** course.  
 The study evaluates the impact of varying the perturbation radius ε on the stability of adversarial robustness leaderboards on CIFAR-10. By analyzing these shifts, we highlight the structural limitations of static benchmarks (such as RobustBench) in light of recent findings in the literature.
 
